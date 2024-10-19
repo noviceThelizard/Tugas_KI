@@ -1,17 +1,26 @@
 <?php
-// Make sure GET param exists
+define('AES_KEY', 'testestes');  
+define('AES_METHOD', 'AES-256-CBC');
+
+
+function encrypt_content($content) {
+    $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_METHOD));
+    $encrypted = openssl_encrypt($content, AES_METHOD, AES_KEY, 0, $iv);
+    return base64_encode($iv . $encrypted);
+}
+
+
 if (isset($_GET['directory'])) {
-    // If form submitted
     if (isset($_POST['filename'], $_POST['type'])) {
-        // Make sure there are no special characters (excluding hyphens, dots, and whitespaces)
         if (preg_match('/^[\w\-. ]+$/', $_POST['filename'])) {
-            // Create directory or else create a file
             if ($_POST['type'] == 'directory') {
                 mkdir($_GET['directory'] . $_POST['filename']);
             } else {
-                file_put_contents($_GET['directory'] . $_POST['filename'], '');
+                $file_content = isset($_POST['file_content']) ? $_POST['file_content'] : '';
+                $encrypted_content = encrypt_content($file_content);
+                
+                file_put_contents($_GET['directory'] . $_POST['filename'], $encrypted_content);
             }
-            // Redirect to the index page
             if ($_GET['directory']) {
                 header('Location: index.php?file=' . urlencode($_GET['directory']));
             } else {
@@ -26,6 +35,8 @@ if (isset($_GET['directory'])) {
     exit('Invalid directory!');
 }
 ?>
+
+
 
 <!DOCTYPE html>
 <html>
@@ -44,7 +55,6 @@ if (isset($_GET['directory'])) {
             </div>
 
             <form action="" method="post">
-
                 <label for="type">Type</label>
                 <select id="type" name="type">
                     <option value="directory">Directory</option>
@@ -52,10 +62,12 @@ if (isset($_GET['directory'])) {
                 </select>
 
                 <label for="filename">Name</label>
-                <input id="filename" name="filename" type="text" placeholder="Name" required> 
+                <input id="filename" name="filename" type="text" placeholder="Name" required>
+
+                <label for="file_content">File Content (optional)</label>
+                <textarea id="file_content" name="file_content" placeholder="Enter file content here..."></textarea>
 
                 <button type="submit">Save</button>
-
             </form>
 
         </div>
