@@ -1,7 +1,9 @@
 <?php
-define('AES_KEY', 'testestes');  
+define('AES_KEY', 'testestes');
+// define('AES_KEY', bin2hex(random_bytes(16)));
 define('AES_METHOD', 'AES-256-CBC');
 
+require('inc/fpdf.php');
 
 function encrypt_content($content) {
     $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(AES_METHOD));
@@ -15,11 +17,21 @@ if (isset($_GET['directory'])) {
         if (preg_match('/^[\w\-. ]+$/', $_POST['filename'])) {
             if ($_POST['type'] == 'directory') {
                 mkdir($_GET['directory'] . $_POST['filename']);
-            } else {
+            } else if ($_POST['type'] == 'file'){
                 $file_content = isset($_POST['file_content']) ? $_POST['file_content'] : '';
                 $encrypted_content = encrypt_content($file_content);
                 
                 file_put_contents($_GET['directory'] . $_POST['filename'], $encrypted_content);
+            } else if ($_POST['type'] == 'pdf') {
+                $pdf = new FPDF();
+                $pdf->AddPage();
+                $pdf->SetFont('Arial', 'B', 18);
+                if ($_POST['file_content'] != '') {
+                    $pdf->Cell(60,20, $_POST['file_content']);
+                } else {
+                    $pdf->Cell(60,20,'Lorem ipsum dolor set');
+                }
+                $pdf->Output($_GET['directory'] . $_POST['filename'].'.pdf', 'F');
             }
             if ($_GET['directory']) {
                 header('Location: index.php?file=' . urlencode($_GET['directory']));
@@ -59,6 +71,7 @@ if (isset($_GET['directory'])) {
                 <select id="type" name="type">
                     <option value="directory">Directory</option>
                     <option value="file">File</option>
+                    <option value="pdf">PDFs</option>
                 </select>
 
                 <label for="filename">Name</label>
